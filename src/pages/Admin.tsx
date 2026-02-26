@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import Sidebar from "@/components/Sidebar";
 import { Ticket as TicketIcon, TrendingUp, Users, Timer } from "lucide-react";
+import TicketDetailModal from "@/components/TicketDetailModal";
 
 const stats = [
   { label: "Open Tickets", value: "24", icon: TicketIcon, change: "+3 today", accent: "text-primary" },
@@ -35,6 +36,7 @@ const STATUS_OPTIONS = ["Pending", "Open", "In Progress", "Resolved"];
 const Admin = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -142,7 +144,11 @@ const Admin = () => {
               </TableHeader>
               <TableBody>
                 {tickets.map((ticket) => (
-                  <TableRow key={ticket.id}>
+                  <TableRow
+                    key={ticket.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setSelectedTicket(ticket)}
+                  >
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                       {format(new Date(ticket.created_at), "MMM d, yyyy")}
                     </TableCell>
@@ -150,7 +156,7 @@ const Admin = () => {
                     <TableCell className="hidden sm:table-cell text-sm text-muted-foreground max-w-[300px] truncate">
                       {ticket.description}
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Select
                         value={ticket.status}
                         onValueChange={(value) => handleStatusChange(ticket, value)}
@@ -177,6 +183,11 @@ const Admin = () => {
         </div>
       </div>
       </main>
+      <TicketDetailModal
+        ticket={selectedTicket}
+        open={!!selectedTicket}
+        onClose={() => setSelectedTicket(null)}
+      />
     </div>
   );
 };
