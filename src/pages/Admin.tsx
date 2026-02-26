@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import Sidebar from "@/components/Sidebar";
 
 interface Ticket {
   id: string;
@@ -63,7 +64,9 @@ const Admin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center py-10 px-4">
+    <div className="min-h-screen bg-background flex">
+      <Sidebar />
+      <main className="flex-1 flex flex-col items-center py-10 px-4">
       <div className="w-full max-w-5xl">
         <h1 className="text-2xl font-bold text-foreground mb-6">Admin — All Tickets</h1>
         <div className="rounded-xl border border-border bg-card">
@@ -123,6 +126,7 @@ const Admin = () => {
           )}
         </div>
       </div>
+      </main>
     </div>
   );
 };
