@@ -5,6 +5,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import TicketDetailModal from "@/components/TicketDetailModal";
 
 interface Ticket {
   id: string;
@@ -29,6 +30,7 @@ const TicketList = ({ refreshKey }: TicketListProps) => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -77,7 +79,11 @@ const TicketList = ({ refreshKey }: TicketListProps) => {
           </TableHeader>
           <TableBody>
             {tickets.map((ticket) => (
-              <TableRow key={ticket.id}>
+              <TableRow
+                key={ticket.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => setSelectedTicket(ticket)}
+              >
                 <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                   {format(new Date(ticket.created_at), "MMM d, yyyy")}
                 </TableCell>
@@ -95,6 +101,11 @@ const TicketList = ({ refreshKey }: TicketListProps) => {
           </TableBody>
         </Table>
       )}
+      <TicketDetailModal
+        ticket={selectedTicket}
+        open={!!selectedTicket}
+        onClose={() => setSelectedTicket(null)}
+      />
     </div>
   );
 };
