@@ -53,6 +53,29 @@ const Admin = () => {
       setLoading(false);
     };
     fetchTickets();
+
+    const channel = supabase
+      .channel("tickets-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tickets" },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setTickets((prev) => [payload.new as Ticket, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setTickets((prev) =>
+              prev.map((t) => (t.id === (payload.new as Ticket).id ? (payload.new as Ticket) : t))
+            );
+          } else if (payload.eventType === "DELETE") {
+            setTickets((prev) => prev.filter((t) => t.id !== (payload.old as Ticket).id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleStatusChange = async (ticket: Ticket, newStatus: string) => {
