@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -6,6 +7,8 @@ import {
   AlertCircle, CheckCircle2, Timer,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import TicketForm from "@/components/TicketForm";
+import TicketList from "@/components/TicketList";
 
 const stats = [
   { label: "Open Tickets", value: "24", icon: Ticket, change: "+3 today", accent: "text-primary" },
@@ -37,6 +40,7 @@ const statusColor: Record<string, string> = {
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -130,30 +134,11 @@ const Dashboard = () => {
             ))}
           </div>
 
-          {/* Recent Tickets */}
-          <div className="rounded-xl border border-border bg-card">
-            <div className="flex items-center justify-between p-5 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">Recent Tickets</h2>
-              <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground">
-                View All <ChevronDown className="h-3 w-3" />
-              </Button>
-            </div>
-            <div className="divide-y divide-border">
-              {recentTickets.map((ticket) => (
-                <div key={ticket.id} className="flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors cursor-pointer">
-                  <span className="text-sm font-mono text-muted-foreground w-20">{ticket.id}</span>
-                  <span className="flex-1 text-sm font-medium text-foreground truncate">{ticket.subject}</span>
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${priorityColor[ticket.priority]}`}>
-                    {ticket.priority}
-                  </span>
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColor[ticket.status]}`}>
-                    {ticket.status}
-                  </span>
-                  <span className="text-xs text-muted-foreground w-20 text-right">{ticket.time}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Create Ticket */}
+          <TicketForm onTicketCreated={() => setRefreshKey((k) => k + 1)} />
+
+          {/* My Tickets */}
+          <TicketList refreshKey={refreshKey} />
         </div>
       </main>
     </div>
