@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface AuthContextType {
   session: Session | null;
   user: User | null;
+  role: "admin" | "customer" | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -12,6 +13,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
+  role: null,
   loading: true,
   signOut: async () => {},
 });
@@ -45,8 +47,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
   };
 
+  const role: "admin" | "customer" | null = user
+    ? (user.user_metadata?.role === "admin" ? "admin" : "customer")
+    : null;
+
   return (
-    <AuthContext.Provider value={{ session, user, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, role, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );

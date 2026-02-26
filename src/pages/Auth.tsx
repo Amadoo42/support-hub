@@ -8,19 +8,21 @@ import { useToast } from "@/hooks/use-toast";
 import { Shield, ArrowLeft, Mail, Lock, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [selectedRole, setSelectedRole] = useState<"admin" | "customer">("customer");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { session } = useAuth();
+  const { session, role } = useAuth();
 
   if (session) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={role === "admin" ? "/admin" : "/dashboard"} replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,15 +31,16 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate("/dashboard");
+        const userRole = data.user?.user_metadata?.role;
+        navigate(userRole === "admin" ? "/admin" : "/dashboard");
       } else {
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { full_name: fullName },
+            data: { full_name: fullName, role: selectedRole },
             emailRedirectTo: window.location.origin,
           },
         });
@@ -114,6 +117,21 @@ const Auth = () => {
                     required
                   />
                 </div>
+              </div>
+            )}
+
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as "admin" | "customer")}>
+                  <SelectTrigger id="role">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="customer">Customer</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
