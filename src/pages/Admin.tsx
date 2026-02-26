@@ -6,6 +6,14 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { format } from "date-fns";
 import { toast } from "sonner";
 import Sidebar from "@/components/Sidebar";
+import { Ticket as TicketIcon, TrendingUp, Users, Timer } from "lucide-react";
+
+const stats = [
+  { label: "Open Tickets", value: "24", icon: TicketIcon, change: "+3 today", accent: "text-primary" },
+  { label: "Avg. Resolution", value: "4.2h", icon: Timer, change: "-12% this week", accent: "text-accent" },
+  { label: "SLA Compliance", value: "96.8%", icon: TrendingUp, change: "+2.1%", accent: "text-success" },
+  { label: "Active Agents", value: "8", icon: Users, change: "2 available", accent: "text-muted-foreground" },
+];
 
 interface Ticket {
   id: string;
@@ -67,8 +75,27 @@ const Admin = () => {
     <div className="min-h-screen bg-background flex">
       <Sidebar />
       <main className="flex-1 flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-5xl">
-        <h1 className="text-2xl font-bold text-foreground mb-6">Admin — All Tickets</h1>
+      <div className="w-full max-w-5xl space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
+          <p className="text-muted-foreground text-sm mt-1">Here's your support overview for today.</p>
+        </div>
+
+        {/* Stats */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat) => (
+            <div key={stat.label} className="rounded-xl border border-border bg-card p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-muted-foreground">{stat.label}</span>
+                <stat.icon className={`h-4 w-4 ${stat.accent}`} />
+              </div>
+              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+              <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
+            </div>
+          ))}
+        </div>
+
+        <h2 className="text-lg font-semibold text-foreground">All Tickets</h2>
         <div className="rounded-xl border border-border bg-card">
           {loading ? (
             <div className="p-5 space-y-3">

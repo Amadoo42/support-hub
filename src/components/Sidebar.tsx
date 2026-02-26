@@ -1,4 +1,4 @@
-import { Shield, LogOut, BarChart3, Ticket, ShieldCheck } from "lucide-react";
+import { Shield, LogOut, BarChart3, ShieldCheck } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -7,9 +7,7 @@ const customerNavItems = [
 ];
 
 const adminNavItems = [
-  { icon: BarChart3, label: "Dashboard", to: "/dashboard" },
   { icon: ShieldCheck, label: "Admin Panel", to: "/admin" },
-  { icon: Ticket, label: "Tickets", to: "/admin" },
 ];
 
 const Sidebar = () => {

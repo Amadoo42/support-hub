@@ -37,6 +37,7 @@ const TicketList = ({ refreshKey }: TicketListProps) => {
       const { data, error } = await supabase
         .from("tickets")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) {
