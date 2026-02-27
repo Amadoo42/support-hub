@@ -101,6 +101,17 @@ const TicketDetailModal = ({ ticket, open, onClose }: TicketDetailModalProps) =>
           setMessages((prev) => [...prev, payload.new as TicketMessage]);
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "audit_logs", filter: `ticket_id=eq.${ticket.id}` },
+        (payload) => {
+          const newLog = payload.new as AuditLog;
+          setAuditLogs((prev) => {
+            if (prev.some((log) => log.id === newLog.id)) return prev;
+            return [...prev, newLog];
+          });
+        }
+      )
       .subscribe();
 
     return () => {
