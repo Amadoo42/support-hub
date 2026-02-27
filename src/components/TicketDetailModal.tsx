@@ -57,6 +57,9 @@ const TicketDetailModal = ({ ticket, open, onClose }: TicketDetailModalProps) =>
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loadingAudit, setLoadingAudit] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const appendMessage = (message: TicketMessage) => {
+    setMessages((prev) => (prev.some((msg) => msg.id === message.id) ? prev : [...prev, message]));
+  };
 
   useEffect(() => {
     if (!open || !ticket) return;
@@ -98,7 +101,7 @@ const TicketDetailModal = ({ ticket, open, onClose }: TicketDetailModalProps) =>
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "ticket_messages", filter: `ticket_id=eq.${ticket.id}` },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as TicketMessage]);
+          appendMessage(payload.new as TicketMessage);
         }
       )
       .on(
@@ -123,43 +126,38 @@ const TicketDetailModal = ({ ticket, open, onClose }: TicketDetailModalProps) =>
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !ticket || !user) return;
-
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !ticket || !user || sending) return;
     setSending(true);
-    const { error } = await supabase.from("ticket_messages").insert({
-      ticket_id: ticket.id,
-      sender_id: user.id,
-      body: newMessage.trim(),
-    });
+    const { data, error } = await supabase
+      .from("ticket_messages")
+      .insert({
+        ticket_id: ticket.id,
+        sender_id: user.id,
+        body: newMessage.trim(),
+      })
+      .select("*")
+      .single();
     setSending(false);
 
     if (error) {
       toast.error("Failed to send message.");
       console.error(error);
     } else {
+      appendMessage(data as TicketMessage);
       setNewMessage("");
     }
+  };
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendMessage();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!newMessage.trim() || !ticket || !user || sending) return;
-      setSending(true);
-      supabase
-        .from("ticket_messages")
-        .insert({ ticket_id: ticket.id, sender_id: user.id, body: newMessage.trim() })
-        .then(({ error }) => {
-          setSending(false);
-          if (error) {
-            toast.error("Failed to send message.");
-            console.error(error);
-          } else {
-            setNewMessage("");
-          }
-        });
+      void sendMessage();
     }
   };
 

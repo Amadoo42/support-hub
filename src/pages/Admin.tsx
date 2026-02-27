@@ -87,6 +87,7 @@ const Admin = () => {
               if (t.status === "Resolved") return sortTickets(filtered);
               return sortTickets([...filtered, t]);
             });
+            setSelectedTicket((prev) => (prev && prev.id === t.id ? { ...prev, ...t } : prev));
           } else if (payload.eventType === "DELETE") {
             setTickets((prev) => prev.filter((x) => x.id !== (payload.old as Ticket).id));
           }
@@ -108,6 +109,14 @@ const Admin = () => {
     if (error) {
       toast.error("Failed to update ticket status.");
     } else {
+      setTickets((prev) => {
+        const filtered = prev.filter((x) => x.id !== ticket.id);
+        if (newStatus === "Resolved") return sortTickets(filtered);
+        return sortTickets([...filtered, { ...ticket, status: newStatus }]);
+      });
+      setSelectedTicket((prev) =>
+        prev && prev.id === ticket.id ? { ...prev, status: newStatus } : prev
+      );
       toast.success("Ticket status updated.");
     }
   };

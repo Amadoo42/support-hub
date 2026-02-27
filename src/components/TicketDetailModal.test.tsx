@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { vi } from "vitest";
 import TicketDetailModal from "./TicketDetailModal";
@@ -6,6 +6,7 @@ import TicketDetailModal from "./TicketDetailModal";
 const mockState = vi.hoisted(() => ({
   removeChannel: vi.fn(),
   auditInsertHandler: null as ((payload: { new: unknown }) => void) | null,
+  nextInsertedMessageId: 1,
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({
@@ -47,6 +48,20 @@ vi.mock("@/integrations/supabase/client", () => {
                 order: vi.fn().mockResolvedValue({ data: [], error: null }),
               })),
             })),
+            insert: vi.fn((payload: { ticket_id: string; sender_id: string; body: string }) => ({
+              select: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: `message-${mockState.nextInsertedMessageId++}`,
+                    ticket_id: payload.ticket_id,
+                    sender_id: payload.sender_id,
+                    body: payload.body,
+                    created_at: "2026-02-27T01:30:00.000Z",
+                  },
+                  error: null,
+                }),
+              })),
+            })),
           };
         }
 
@@ -63,6 +78,7 @@ vi.mock("@/integrations/supabase/client", () => {
 describe("TicketDetailModal", () => {
   beforeEach(() => {
     mockState.auditInsertHandler = null;
+    mockState.nextInsertedMessageId = 1;
     mockState.removeChannel.mockClear();
     Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
       configurable: true,
@@ -106,5 +122,25 @@ describe("TicketDetailModal", () => {
 
     unmount();
     expect(mockState.removeChannel).toHaveBeenCalled();
+  });
+
+  it("shows a newly sent message immediately after submit", async () => {
+    const ticket = {
+      id: "ticket-2",
+      category: "Support",
+      description: "Need help with account",
+      status: "Open",
+      created_at: "2026-02-27T00:00:00.000Z",
+    };
+
+    render(<TicketDetailModal ticket={ticket} open onClose={vi.fn()} />);
+
+    const textarea = screen.getByPlaceholderText("Type a message...");
+    fireEvent.change(textarea, { target: { value: "Hello from admin" } });
+    fireEvent.submit(textarea.closest("form") as HTMLFormElement);
+
+    await waitFor(() => {
+      expect(screen.getByText("Hello from admin")).toBeInTheDocument();
+    });
   });
 });
