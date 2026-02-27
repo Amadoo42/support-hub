@@ -20,8 +20,8 @@ interface Ticket {
 interface TicketMessage {
   id: string;
   ticket_id: string;
-  user_id: string;
-  message: string;
+  sender_id: string;
+  body: string;
   created_at: string;
 }
 
@@ -94,8 +94,8 @@ const TicketDetailModal = ({ ticket, open, onClose }: TicketDetailModalProps) =>
     setSending(true);
     const { error } = await supabase.from("ticket_messages").insert({
       ticket_id: ticket.id,
-      user_id: user.id,
-      message: newMessage.trim(),
+      sender_id: user.id,
+      body: newMessage.trim(),
     });
     setSending(false);
 
@@ -114,7 +114,7 @@ const TicketDetailModal = ({ ticket, open, onClose }: TicketDetailModalProps) =>
       setSending(true);
       supabase
         .from("ticket_messages")
-        .insert({ ticket_id: ticket.id, user_id: user.id, message: newMessage.trim() })
+        .insert({ ticket_id: ticket.id, sender_id: user.id, body: newMessage.trim() })
         .then(({ error }) => {
           setSending(false);
           if (error) {
@@ -165,7 +165,7 @@ const TicketDetailModal = ({ ticket, open, onClose }: TicketDetailModalProps) =>
                 </p>
               ) : (
                 messages.map((msg) => {
-                  const isOwn = msg.user_id === user?.id;
+                  const isOwn = msg.sender_id === user?.id;
                   return (
                     <div
                       key={msg.id}
@@ -178,7 +178,7 @@ const TicketDetailModal = ({ ticket, open, onClose }: TicketDetailModalProps) =>
                             : "bg-secondary text-secondary-foreground rounded-bl-sm"
                         }`}
                       >
-                        <p>{msg.message}</p>
+                        <p>{msg.body}</p>
                         <p className={`text-[10px] mt-1 ${isOwn ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                           {format(new Date(msg.created_at), "h:mm a")}
                         </p>

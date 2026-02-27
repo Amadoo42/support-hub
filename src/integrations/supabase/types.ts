@@ -18,22 +18,22 @@ export type Database = {
         Row: {
           id: string
           ticket_id: string
-          user_id: string
-          message: string
+          sender_id: string
+          body: string
           created_at: string
         }
         Insert: {
           id?: string
           ticket_id: string
-          user_id: string
-          message: string
+          sender_id: string
+          body: string
           created_at?: string
         }
         Update: {
           id?: string
           ticket_id?: string
-          user_id?: string
-          message?: string
+          sender_id?: string
+          body?: string
           created_at?: string
         }
         Relationships: [
