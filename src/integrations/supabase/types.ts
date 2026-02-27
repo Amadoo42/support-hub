@@ -14,12 +14,49 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          changed_by: string
+          created_at: string
+          id: string
+          new_status: string | null
+          old_status: string | null
+          ticket_id: string
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          id?: string
+          new_status?: string | null
+          old_status?: string | null
+          ticket_id: string
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          id?: string
+          new_status?: string | null
+          old_status?: string | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           category: string
           created_at: string
           description: string
+          due_date: string | null
           id: string
+          priority: string
           status: string
           user_id: string
         }
@@ -27,7 +64,9 @@ export type Database = {
           category: string
           created_at?: string
           description: string
+          due_date?: string | null
           id?: string
+          priority?: string
           status?: string
           user_id: string
         }
@@ -35,7 +74,9 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string
+          due_date?: string | null
           id?: string
+          priority?: string
           status?: string
           user_id?: string
         }
