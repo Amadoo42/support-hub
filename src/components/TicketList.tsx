@@ -24,9 +24,10 @@ const statusVariant: Record<string, string> = {
 
 interface TicketListProps {
   refreshKey: number;
+  searchQuery?: string;
 }
 
-const TicketList = ({ refreshKey }: TicketListProps) => {
+const TicketList = ({ refreshKey, searchQuery = "" }: TicketListProps) => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +53,14 @@ const TicketList = ({ refreshKey }: TicketListProps) => {
     fetchTickets();
   }, [user, refreshKey]);
 
+  const filteredTickets = searchQuery.trim()
+    ? tickets.filter(
+        (t) =>
+          t.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          t.description.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : tickets;
+
   return (
     <div className="rounded-xl border border-border bg-card">
       <div className="p-5 border-b border-border">
@@ -63,9 +72,9 @@ const TicketList = ({ refreshKey }: TicketListProps) => {
             <Skeleton key={i} className="h-10 w-full" />
           ))}
         </div>
-      ) : tickets.length === 0 ? (
+      ) : filteredTickets.length === 0 ? (
         <div className="p-10 text-center text-muted-foreground text-sm">
-          No tickets yet. Submit one above to get started.
+          {tickets.length === 0 ? "No tickets yet. Submit one above to get started." : "No tickets match your search."}
         </div>
       ) : (
         <Table>
@@ -78,7 +87,7 @@ const TicketList = ({ refreshKey }: TicketListProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tickets.map((ticket) => (
+            {filteredTickets.map((ticket) => (
               <TableRow
                 key={ticket.id}
                 className="cursor-pointer hover:bg-muted/50"

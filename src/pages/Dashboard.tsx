@@ -10,6 +10,7 @@ import Sidebar from "@/components/Sidebar";
 const Dashboard = () => {
   const { role } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
 
   if (role === "admin") {
     return <Navigate to="/admin" replace />;
@@ -26,7 +27,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-4 flex-1 max-w-md">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search tickets..." className="pl-10 bg-secondary border-0" />
+              <Input placeholder="Search tickets..." className="pl-10 bg-secondary border-0" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
           </div>
         </header>
@@ -45,7 +46,7 @@ const Dashboard = () => {
           <TicketForm onTicketCreated={() => setRefreshKey((k) => k + 1)} />
 
           {/* My Tickets */}
-          <TicketList refreshKey={refreshKey} />
+          <TicketList refreshKey={refreshKey} searchQuery={searchQuery} />
         </div>
       </main>
     </div>
