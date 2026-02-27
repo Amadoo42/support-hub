@@ -12,7 +12,6 @@ interface Ticket {
   category: string;
   description: string;
   status: string;
-  priority: string;
   created_at: string;
 }
 

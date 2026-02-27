@@ -1,27 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
-import { Clock, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
+import { Send } from "lucide-react";
 
 interface Ticket {
   id: string;
   category: string;
   description: string;
   status: string;
-  priority: string;
   created_at: string;
 }
 
-interface AuditLog {
+interface TicketMessage {
   id: string;
   ticket_id: string;
-  old_status: string | null;
-  new_status: string | null;
-  changed_by: string;
+  sender_id: string;
+  body: string;
   created_at: string;
 }
 
@@ -38,52 +38,109 @@ const statusVariant: Record<string, string> = {
   Resolved: "bg-success/10 text-success",
 };
 
-const priorityVariant: Record<string, string> = {
-  Low: "bg-muted text-muted-foreground",
-  Medium: "bg-primary/10 text-primary",
-  High: "bg-warning/10 text-warning",
-  Critical: "bg-destructive/10 text-destructive",
-};
-
 const TicketDetailModal = ({ ticket, open, onClose }: TicketDetailModalProps) => {
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [loadingLogs, setLoadingLogs] = useState(false);
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<TicketMessage[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open || !ticket) return;
 
-    const fetchLogs = async () => {
-      setLoadingLogs(true);
+    const fetchMessages = async () => {
+      setLoadingMessages(true);
       const { data, error } = await supabase
-        .from("audit_logs")
+        .from("ticket_messages")
         .select("*")
         .eq("ticket_id", ticket.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
 
       if (error) {
         console.error(error);
       } else {
-        setAuditLogs((data as AuditLog[]) ?? []);
+        setMessages((data as TicketMessage[]) ?? []);
       }
-      setLoadingLogs(false);
+      setLoadingMessages(false);
     };
 
-    fetchLogs();
+    fetchMessages();
+
+    const channel = supabase
+      .channel(`ticket-messages-${ticket.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "ticket_messages", filter: `ticket_id=eq.${ticket.id}` },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new as TicketMessage]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [open, ticket]);
 
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !ticket || !user) return;
+
+    setSending(true);
+    const { error } = await supabase.from("ticket_messages").insert({
+      ticket_id: ticket.id,
+      sender_id: user.id,
+      body: newMessage.trim(),
+    });
+    setSending(false);
+
+    if (error) {
+      toast.error("Failed to send message.");
+      console.error(error);
+    } else {
+      setNewMessage("");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!newMessage.trim() || !ticket || !user || sending) return;
+      setSending(true);
+      supabase
+        .from("ticket_messages")
+        .insert({ ticket_id: ticket.id, sender_id: user.id, body: newMessage.trim() })
+        .then(({ error }) => {
+          setSending(false);
+          if (error) {
+            toast.error("Failed to send message.");
+            console.error(error);
+          } else {
+            setNewMessage("");
+          }
+        });
+    }
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) onClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl w-full flex flex-col max-h-[85vh]">
         {ticket && (
           <>
             <DialogHeader className="shrink-0">
               <DialogTitle className="text-base font-semibold">{ticket.category}</DialogTitle>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <div className="flex items-center gap-3 mt-1">
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusVariant[ticket.status] || "bg-muted text-muted-foreground"}`}>
                   {ticket.status}
-                </span>
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${priorityVariant[ticket.priority] || "bg-muted text-muted-foreground"}`}>
-                  {ticket.priority}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {format(new Date(ticket.created_at), "MMM d, yyyy 'at' h:mm a")}
@@ -92,49 +149,63 @@ const TicketDetailModal = ({ ticket, open, onClose }: TicketDetailModalProps) =>
               <p className="text-sm text-muted-foreground mt-2">{ticket.description}</p>
             </DialogHeader>
 
-            <Tabs defaultValue="history" className="flex-1 min-h-0 flex flex-col">
-              <TabsList className="shrink-0">
-                <TabsTrigger value="history">History</TabsTrigger>
-              </TabsList>
-              <TabsContent value="history" className="flex-1 overflow-y-auto">
-                {loadingLogs ? (
-                  <div className="space-y-3 p-2">
-                    {[...Array(3)].map((_, i) => (
-                      <Skeleton key={i} className="h-12 w-full" />
-                    ))}
-                  </div>
-                ) : auditLogs.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground py-8">
-                    No status changes recorded yet.
-                  </p>
-                ) : (
-                  <div className="relative pl-6 py-2 space-y-0">
-                    {/* Vertical line */}
-                    <div className="absolute left-[11px] top-4 bottom-4 w-px bg-border" />
-                    {auditLogs.map((log) => (
-                      <div key={log.id} className="relative flex items-start gap-3 pb-6 last:pb-0">
-                        <div className="absolute left-[-13px] top-1 h-3 w-3 rounded-full bg-primary border-2 border-background" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className={`text-[10px] ${statusVariant[log.old_status || ""] || ""}`}>
-                              {log.old_status || "—"}
-                            </Badge>
-                            <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                            <Badge variant="outline" className={`text-[10px] ${statusVariant[log.new_status || ""] || ""}`}>
-                              {log.new_status || "—"}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            {format(new Date(log.created_at), "MMM d, yyyy 'at' h:mm a")}
-                          </div>
-                        </div>
+            <div className="border-t border-border" />
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto py-4 space-y-3 min-h-0">
+              {loadingMessages ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-3/4" />
+                  ))}
+                </div>
+              ) : messages.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-8">
+                  No messages yet. Start the conversation below.
+                </p>
+              ) : (
+                messages.map((msg) => {
+                  const isOwn = msg.sender_id === user?.id;
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
+                          isOwn
+                            ? "bg-primary text-primary-foreground rounded-br-sm"
+                            : "bg-secondary text-secondary-foreground rounded-bl-sm"
+                        }`}
+                      >
+                        <p>{msg.body}</p>
+                        <p className={`text-[10px] mt-1 ${isOwn ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                          {format(new Date(msg.created_at), "h:mm a")}
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={bottomRef} />
+            </div>
+
+            <div className="border-t border-border" />
+
+            {/* Message form */}
+            <form onSubmit={handleSend} className="flex items-end gap-2 shrink-0 pt-2">
+              <Textarea
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+                rows={2}
+                className="flex-1 resize-none"
+                onKeyDown={handleKeyDown}
+              />
+              <Button type="submit" size="icon" disabled={sending || !newMessage.trim()}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
           </>
         )}
       </DialogContent>

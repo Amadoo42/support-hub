@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 
 const categories = ["Account Issue", "Payment", "KYC / Compliance", "Technical", "General Inquiry"];
-const priorities = ["Low", "Medium", "High", "Critical"];
 
 interface TicketFormProps {
   onTicketCreated: () => void;
@@ -19,7 +18,6 @@ interface TicketFormProps {
 const TicketForm = ({ onTicketCreated }: TicketFormProps) => {
   const { user } = useAuth();
   const [category, setCategory] = useState("");
-  const [priority, setPriority] = useState("Medium");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -35,7 +33,6 @@ const TicketForm = ({ onTicketCreated }: TicketFormProps) => {
     const { error } = await supabase.from("tickets").insert({
       user_id: user.id,
       category,
-      priority,
       description: description.trim(),
     });
     setLoading(false);
@@ -46,7 +43,6 @@ const TicketForm = ({ onTicketCreated }: TicketFormProps) => {
     } else {
       toast.success("Ticket created successfully.");
       setCategory("");
-      setPriority("Medium");
       setDescription("");
       onTicketCreated();
     }
@@ -65,19 +61,6 @@ const TicketForm = ({ onTicketCreated }: TicketFormProps) => {
             <SelectContent>
               {categories.map((c) => (
                 <SelectItem key={c} value={c}>{c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="priority">Priority</Label>
-          <Select value={priority} onValueChange={setPriority}>
-            <SelectTrigger id="priority">
-              <SelectValue placeholder="Select priority" />
-            </SelectTrigger>
-            <SelectContent>
-              {priorities.map((p) => (
-                <SelectItem key={p} value={p}>{p}</SelectItem>
               ))}
             </SelectContent>
           </Select>
