@@ -50,7 +50,21 @@ const AnalyticsDashboard = () => {
       setLoading(false);
     };
 
-    fetchStats();
+    void fetchStats();
+
+    const channel = supabase
+      .channel("analytics-stats")
+      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" }, () => {
+        void fetchStats();
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_logs" }, () => {
+        void fetchStats();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return (
