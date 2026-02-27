@@ -2,8 +2,8 @@
 create table if not exists public.ticket_messages (
   id uuid primary key default gen_random_uuid(),
   ticket_id uuid not null references public.tickets(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  message text not null,
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  body text not null,
   created_at timestamptz not null default now()
 );
 
@@ -28,7 +28,7 @@ create policy "Users can insert messages for their tickets"
   on public.ticket_messages
   for insert
   with check (
-    auth.uid() = user_id
+    auth.uid() = sender_id
     and (
       exists (
         select 1 from public.tickets
